@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import './UserTable.css';
 
 interface User {
   id: number;
@@ -15,7 +14,7 @@ interface CacheData {
 }
 
 const CACHE_KEY = 'usersCache';
-const CACHE_DURATION = 60000; // 1 минута в миллисекундах
+const CACHE_DURATION = 60000; // 1 минута
 
 const UserTable = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -23,13 +22,10 @@ const UserTable = () => {
   const [error, setError] = useState<string | null>(null);
   const [isFromCache, setIsFromCache] = useState(false);
 
-  // Проверка валидности кэша
   const isCacheValid = (cache: CacheData): boolean => {
-    const now = Date.now();
-    return now - cache.timestamp < CACHE_DURATION;
+    return Date.now() - cache.timestamp < CACHE_DURATION;
   };
 
-  // Загрузка пользователей
   const loadUsers = async () => {
     setError(null);
     setIsFromCache(false);
@@ -42,55 +38,50 @@ const UserTable = () => {
         if (isCacheValid(cacheData)) {
           setUsers(cacheData.users);
           setIsFromCache(true);
-          return; // Используем кэш, не делаем запрос
+          return; // Используем кэш
         }
       }
     } catch (err) {
-      console.error('Ошибка при чтении кэша:', err);
+      console.error('Ошибка чтения кэша:', err);
     }
 
     // Загрузка с API
     setLoading(true);
     try {
       const response = await fetch('https://jsonplaceholder.typicode.com/users');
-      if (!response.ok) {
-        throw new Error('Ошибка при загрузке данных');
-      }
+      if (!response.ok) throw new Error('Ошибка загрузки');
       const data: User[] = await response.json();
       setUsers(data);
       
-      // Сохранение в кэш
+      // Сохраняем в кэш
       const cacheData: CacheData = {
         timestamp: Date.now(),
         users: data
       };
       localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
+      setError(err instanceof Error ? err.message : 'Ошибка');
     } finally {
       setLoading(false);
     }
   };
 
-  // Очистка кэша
   const clearCache = () => {
     localStorage.removeItem(CACHE_KEY);
     setIsFromCache(false);
     setUsers([]);
   };
 
-  // Проверка существования кэша
   const hasCache = () => {
     return localStorage.getItem(CACHE_KEY) !== null;
   };
 
   return (
-    <div className="user-table-container">
-      <div className="controls">
+    <div>
+      <div>
         <button 
           onClick={loadUsers} 
           disabled={loading}
-          className="load-button"
         >
           {loading ? 'Загрузка...' : 'Загрузить пользователей'}
         </button>
@@ -98,26 +89,19 @@ const UserTable = () => {
         <button 
           onClick={clearCache} 
           disabled={!hasCache()}
-          className="clear-cache-button"
         >
           Очистить кэш
         </button>
       </div>
 
       {isFromCache && (
-        <div className="cache-notice">
-          ⚡ Данные загружены из кэша (актуальность до 1 минуты)
-        </div>
+        <div>⚡ Данные из кэша (актуальны 1 минуту)</div>
       )}
 
-      {error && (
-        <div className="error-message">
-          ❌ {error}
-        </div>
-      )}
+      {error && <div>❌ {error}</div>}
 
       {users.length > 0 && (
-        <table className="user-table">
+        <table>
           <thead>
             <tr>
               <th>ID</th>
